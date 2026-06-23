@@ -8,6 +8,9 @@ import {
   getPackageVersion,
   handleTokenExchangeCallback,
 } from "./utils";
+import { ServiceAccountStore } from "./utils/serviceAccountStore";
+
+const SA_HEADER = "x-gtm-service-account";
 
 export class WascerGTMMCPServer extends McpAgent<
   Env,
@@ -42,6 +45,13 @@ export default {
       path: url.pathname,
     });
 
+    // Extract Service Account from header before OAuth processes the request
+    const saHeader = request.headers.get(SA_HEADER);
+    if (saHeader && (url.pathname === "/mcp" || url.pathname === "/sse")) {
+      // Store temporarily — will be associated with userId after auth
+      ServiceAccountStore.setPending(requestId, saHeader);
+    }
+
     const provider = new OAuthProvider({
       apiRoute: ["/sse", "/mcp"],
       apiHandlers: {
@@ -54,7 +64,33 @@ export default {
       tokenEndpoint: "/token",
       clientRegistrationEndpoint: "/register",
       tokenExchangeCallback: async (options) => {
-        return handleTokenExchangeCallback(options, env);
+        const result = await handleTokenExchangeCallback(options, env);
+
+        // Associate pending SA with the authenticated user
+        if (options.props?.userId && saHeader) {
+          const sa = saHeader.trim();
+          if (sa) {
+            try {
+              // Validate: try base64 first, then raw JSON
+              let credentials: any;
+              try {
+                credentials = JSON.parse(atob(sa));
+              } catch {
+                credentials = JSON.parse(sa);
+              }
+
+              if (credentials.type === "service_account" && credentials.client_email && credentials.private_key) {
+                const b64 = btoa(JSON.stringify(credentials));
+                ServiceAccountStore.set(options.props.userId, b64);
+                console.log(`[SA] Service Account configured via header for user ${options.props.userId}: ${credentials.client_email}`);
+              }
+            } catch (e) {
+              console.error("[SA] Invalid Service Account in header:", e);
+            }
+          }
+        }
+
+        return result;
       },
     });
 
@@ -68,6 +104,7 @@ export default {
         path: url.pathname,
       });
 
+      ServiceAccountStore.removePending(requestId);
       return response;
     } catch (err) {
       console.error("[HTTP] Unhandled exception", {
@@ -79,6 +116,7 @@ export default {
             : err,
       });
 
+      ServiceAccountStore.removePending(requestId);
       throw err;
     }
   },
