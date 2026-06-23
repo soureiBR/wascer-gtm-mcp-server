@@ -1,180 +1,120 @@
 # Wascer GTM MCP Server
 
-A remote MCP (Model Context Protocol) server for Google Tag Manager, powered by [Wascer](https://wascer.com). Enables AI assistants like Claude, Cursor, and others to manage GTM accounts, containers, tags, triggers, variables, and more.
+MCP server que permite assistentes de IA (Claude, Cursor, etc.) gerenciarem o Google Tag Manager via linguagem natural.
 
-## Features
-
-- **Google OAuth authentication** with full GTM API scopes
-- **Service Account support** (optional) via `gtm_setup` tool for platform-level access
-- **11 tools** covering the complete GTM workflow: accounts, containers, workspaces, tags, triggers, variables, versions, built-in variables, clients, and more
-- **Remote-first** architecture on Cloudflare Workers with Durable Objects
-
-## Available Tools
-
-| Tool | Operations | Description |
-|------|-----------|-------------|
-| `gtm_setup` | configure | Configure a Google Service Account for platform-level GTM access (optional) |
-| `gtm_account` | get, list, update | Manage GTM accounts |
-| `gtm_container` | create, get, list, update, remove, snippet | Manage containers (web & server) |
-| `gtm_workspace` | create, get, list, update, remove, createVersion, getStatus, sync | Manage workspaces and create versions |
-| `gtm_tag` | create, get, list, update, remove, revert | Manage tags |
-| `gtm_trigger` | create, get, list, update, remove, revert | Manage triggers |
-| `gtm_variable` | create, get, list, update, remove, revert | Manage variables |
-| `gtm_version` | get, live, publish, remove, setLatest, undelete, update | Manage and publish container versions |
-| `gtm_built_in_variable` | create, list, remove, revert | Enable/disable built-in variables |
-| `gtm_client` | create, get, list, update, remove, revert | Manage server-side clients |
-| `gtm_remove_session` | revoke | Clear session data and revoke access |
-
-## Authentication Modes
-
-### Mode 1: Google OAuth (default)
-
-Users authenticate with their Google account. The MCP server requests GTM permissions during login. Users can access any GTM account their Google account has permissions on.
-
-### Mode 2: Service Account (optional)
-
-For platform-level access, users can call `gtm_setup` with a Google Service Account JSON. This overrides the OAuth token for the session and grants access to all GTM accounts the Service Account has been granted permissions on.
-
-## Setup
+## Como conectar
 
 ### Claude Desktop
 
-Open Settings -> Developer -> Edit Config and add:
+Settings → Developer → Edit Config:
 
 ```json
 {
   "mcpServers": {
     "wascer-gtm": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "https://your-worker-url.com/mcp"
-      ]
+      "args": ["-y", "mcp-remote", "https://gtm-mcp.wascer.com/mcp"]
     }
   }
 }
 ```
 
-### Claude Code (CLI)
+### Claude Code
 
 ```bash
-claude mcp add wascer-gtm -- npx mcp-remote https://your-worker-url.com/mcp
+claude mcp add wascer-gtm -- npx mcp-remote https://gtm-mcp.wascer.com/mcp
 ```
 
 ### Cursor / VS Code
 
-Add to your MCP settings:
+Adicione nas configuracoes de MCP:
 
 ```json
 {
   "mcpServers": {
     "wascer-gtm": {
       "command": "npx",
-      "args": ["mcp-remote", "https://your-worker-url.com/mcp"]
+      "args": ["-y", "mcp-remote", "https://gtm-mcp.wascer.com/mcp"]
     }
   }
 }
 ```
 
-After connecting, a browser window will open for Google OAuth. Complete the login to grant GTM access.
+Ao conectar, o navegador abre para login com Google. Apos autenticar, as tools ficam disponiveis.
 
-## Local Development
+## O que da pra fazer
 
-### Prerequisites
+Com linguagem natural, voce pode pedir ao AI para:
 
-- Node.js 18+
-- A Google Cloud OAuth app (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`)
-- Add `http://localhost:3333/callback` as an authorized redirect URI in the Google Cloud Console
+- Listar contas e containers GTM
+- Criar containers web e server-side
+- Criar e editar tags, triggers e variaveis
+- Ativar built-in variables (Page URL, Event, Click ID, etc.)
+- Criar clients server-side (GA4 client, etc.)
+- Criar versoes e publicar
 
-### Setup
-
-```bash
-git clone https://github.com/wascer/wascer-gtm-mcp-server.git
-cd wascer-gtm-mcp-server
-npm install
-```
-
-Create a `.dev.vars` file:
+### Exemplo de uso
 
 ```
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-COOKIE_ENCRYPTION_KEY=any-secret-string
-WORKER_HOST=http://localhost:3333
+Na minha conta GTM, crie um container web chamado "meu-site" com:
+- Variavel GA4 ID com valor G-XXXXXXXX
+- Trigger All Pages
+- Tag GA4 Configuration apontando para o server
+- Publique
 ```
 
-### Run
+A IA executa todas as operacoes automaticamente via Google Tag Manager API.
 
-```bash
-npx wrangler dev
+## Tools disponiveis
+
+| Tool | Operacoes | Descricao |
+|------|-----------|-----------|
+| `gtm_account` | get, list, update | Gerenciar contas GTM |
+| `gtm_container` | create, get, list, update, remove, snippet | Gerenciar containers (web e server) |
+| `gtm_workspace` | create, get, list, update, remove, createVersion, getStatus, sync | Gerenciar workspaces e criar versoes |
+| `gtm_tag` | create, get, list, update, remove, revert | Gerenciar tags |
+| `gtm_trigger` | create, get, list, update, remove, revert | Gerenciar triggers |
+| `gtm_variable` | create, get, list, update, remove, revert | Gerenciar variaveis |
+| `gtm_version` | get, live, publish, remove, setLatest, undelete, update | Gerenciar e publicar versoes |
+| `gtm_built_in_variable` | create, list, remove, revert | Ativar/desativar variaveis nativas |
+| `gtm_client` | create, get, list, update, remove, revert | Gerenciar clients server-side |
+| `gtm_setup` | configure | Configurar Service Account (opcional) |
+
+## Autenticacao
+
+### Google OAuth (padrao)
+
+Ao conectar, voce faz login com sua conta Google. O MCP acessa as contas GTM que sua conta tem permissao. Nao precisa de configuracao adicional.
+
+### Service Account (opcional)
+
+Para acesso a nivel de plataforma (ex: gerenciar contas de clientes), envie um Service Account JSON no chat:
+
+```
+Configure o acesso GTM com este Service Account:
+
+ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIs...
 ```
 
-The server starts at `http://localhost:3333`.
-
-### Test with MCP Inspector
-
-```bash
-npx @modelcontextprotocol/inspector
-```
-
-Connect using STDIO transport with command `npx` and arguments `mcp-remote http://localhost:3333/mcp`.
-
-### Run Tests
-
-```bash
-npm test
-```
-
-### Build
-
-```bash
-npm run build
-```
-
-## Deployment
-
-### Cloudflare Workers
-
-1. Create a KV namespace:
-```bash
-wrangler kv namespace create OAUTH_KV
-```
-
-2. Update `wrangler.jsonc` with the KV namespace ID
-
-3. Set secrets:
-```bash
-wrangler secret put GOOGLE_CLIENT_ID
-wrangler secret put GOOGLE_CLIENT_SECRET
-wrangler secret put COOKIE_ENCRYPTION_KEY
-wrangler secret put WORKER_HOST
-```
-
-4. Deploy:
-```bash
-npm run deploy
-```
+A IA chama `gtm_setup` automaticamente. A partir dai, todas as operacoes usam o Service Account.
 
 ## Troubleshooting
 
-**MCP Server Name Length Limit**
-
-Some MCP clients have a 60-character limit for the combined server name + tool name. Use a short server name like `wascer-gtm`.
-
-**Clearing Auth Cache**
-
-[mcp-remote](https://github.com/geelen/mcp-remote#readme) stores credentials in `~/.mcp-auth`. To reset:
+**Resetar autenticacao**
 
 ```bash
 rm -rf ~/.mcp-auth
 ```
 
-Then restart your MCP client.
+Reinicie o MCP client para relogar.
 
-**Google OAuth Consent Screen**
+**"Access blocked" no login Google**
 
-If you see "Access blocked" during login, make sure your Google Cloud OAuth app has the GTM API scopes enabled and the app is configured for the correct user type (internal or external with test users).
+Verifique se sua conta Google tem acesso ao Tag Manager e se o app OAuth tem os scopes GTM habilitados.
+
+**Tools nao aparecem**
+
+Use um nome curto para o server (ex: `wascer-gtm`). Alguns clients tem limite de 60 caracteres para nome + tool.
 
 ## License
 
