@@ -14,7 +14,8 @@ Settings → Developer → Edit Config:
     "wascer-gtm": {
       "command": "npx",
       "args": [
-        "-y", "mcp-remote",
+        "-y",
+        "mcp-remote",
         "https://gtm-mcp.wascer.com/mcp",
         "--header",
         "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
@@ -54,7 +55,8 @@ Settings → MCP → Add Server:
     "wascer-gtm": {
       "command": "npx",
       "args": [
-        "-y", "mcp-remote",
+        "-y",
+        "mcp-remote",
         "https://gtm-mcp.wascer.com/mcp",
         "--header",
         "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
@@ -77,7 +79,8 @@ Add to `.vscode/mcp.json` or user settings:
     "wascer-gtm": {
       "command": "npx",
       "args": [
-        "-y", "mcp-remote",
+        "-y",
+        "mcp-remote",
         "https://gtm-mcp.wascer.com/mcp",
         "--header",
         "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
@@ -117,18 +120,18 @@ The AI executes all operations automatically via the Google Tag Manager API.
 
 ## Available tools
 
-| Tool | Operations | Description |
-|------|-----------|-------------|
-| `gtm_account` | get, list, update | Manage GTM accounts |
-| `gtm_container` | create, get, list, update, remove, snippet | Manage containers (web & server) |
-| `gtm_workspace` | create, get, list, update, remove, createVersion, getStatus, sync | Manage workspaces and create versions |
-| `gtm_tag` | create, get, list, update, remove, revert | Manage tags |
-| `gtm_trigger` | create, get, list, update, remove, revert | Manage triggers |
-| `gtm_variable` | create, get, list, update, remove, revert | Manage variables |
-| `gtm_version` | get, live, publish, remove, setLatest, undelete, update | Manage and publish versions |
-| `gtm_built_in_variable` | create, list, remove, revert | Enable/disable built-in variables |
-| `gtm_client` | create, get, list, update, remove, revert | Manage server-side clients |
-| `gtm_setup` | configure | Configure Service Account via prompt (fallback) |
+| Tool                    | Operations                                                        | Description                                     |
+| ----------------------- | ----------------------------------------------------------------- | ----------------------------------------------- |
+| `gtm_account`           | get, list, update                                                 | Manage GTM accounts                             |
+| `gtm_container`         | create, get, list, update, remove, snippet                        | Manage containers (web & server)                |
+| `gtm_workspace`         | create, get, list, update, remove, createVersion, getStatus, sync | Manage workspaces and create versions           |
+| `gtm_tag`               | create, get, list, update, remove, revert                         | Manage tags                                     |
+| `gtm_trigger`           | create, get, list, update, remove, revert                         | Manage triggers                                 |
+| `gtm_variable`          | create, get, list, update, remove, revert                         | Manage variables                                |
+| `gtm_version`           | get, live, publish, remove, setLatest, undelete, update           | Manage and publish versions                     |
+| `gtm_built_in_variable` | create, list, remove, revert                                      | Enable/disable built-in variables               |
+| `gtm_client`            | create, get, list, update, remove, revert                         | Manage server-side clients                      |
+| `gtm_setup`             | configure                                                         | Configure Service Account via prompt (fallback) |
 
 ## Authentication
 
@@ -148,13 +151,6 @@ For platform-level access (e.g. managing client accounts), add the Service Accou
 4. Base64 encode the JSON: `base64 -w 0 service-account.json`
 5. Use the base64 string in the `GTM_SERVICE_ACCOUNT_JSON` env var
 6. In Google Tag Manager, add the SA email as an admin on the accounts you want to manage
-
-#### How it works
-
-1. The `env` field sets the SA JSON as a local environment variable
-2. `mcp-remote` reads `${GTM_SERVICE_ACCOUNT_JSON}` and injects it into the HTTP header
-3. The server reads the header and configures the SA for the session
-4. All GTM operations use the Service Account instead of your Google OAuth token
 
 ## Troubleshooting
 
