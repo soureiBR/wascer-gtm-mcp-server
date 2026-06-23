@@ -13,17 +13,36 @@ Settings → Developer → Edit Config:
   "mcpServers": {
     "wascer-gtm": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://gtm-mcp.wascer.com/mcp"]
+      "args": [
+        "-y", "mcp-remote",
+        "https://gtm-mcp.wascer.com/mcp",
+        "--header",
+        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
+      ],
+      "env": {
+        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
+      }
     }
   }
 }
 ```
 
+> If you don't have a Service Account, remove the `--header` line and the `env` block. The MCP will use your Google OAuth login instead.
+
 ### Claude Code
 
 ```bash
-claude mcp add wascer-gtm -- npx mcp-remote https://gtm-mcp.wascer.com/mcp
+# 1. Encode your Service Account JSON file to base64
+export GTM_SA=$(base64 -w 0 /path/to/service-account.json)
+
+# 2. Add the MCP server with the SA as an environment variable
+claude mcp add wascer-gtm \
+  -e GTM_SERVICE_ACCOUNT_JSON="$GTM_SA" \
+  -- npx mcp-remote https://gtm-mcp.wascer.com/mcp \
+  --header "X-GTM-Service-Account: \${GTM_SERVICE_ACCOUNT_JSON}"
 ```
+
+> Without Service Account, just run: `claude mcp add wascer-gtm -- npx mcp-remote https://gtm-mcp.wascer.com/mcp`
 
 ### Cursor
 
@@ -34,7 +53,15 @@ Settings → MCP → Add Server:
   "mcpServers": {
     "wascer-gtm": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://gtm-mcp.wascer.com/mcp"]
+      "args": [
+        "-y", "mcp-remote",
+        "https://gtm-mcp.wascer.com/mcp",
+        "--header",
+        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
+      ],
+      "env": {
+        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
+      }
     }
   }
 }
@@ -49,7 +76,15 @@ Add to `.vscode/mcp.json` or user settings:
   "mcpServers": {
     "wascer-gtm": {
       "command": "npx",
-      "args": ["-y", "mcp-remote", "https://gtm-mcp.wascer.com/mcp"]
+      "args": [
+        "-y", "mcp-remote",
+        "https://gtm-mcp.wascer.com/mcp",
+        "--header",
+        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
+      ],
+      "env": {
+        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
+      }
     }
   }
 }
@@ -93,7 +128,7 @@ The AI executes all operations automatically via the Google Tag Manager API.
 | `gtm_version` | get, live, publish, remove, setLatest, undelete, update | Manage and publish versions |
 | `gtm_built_in_variable` | create, list, remove, revert | Enable/disable built-in variables |
 | `gtm_client` | create, get, list, update, remove, revert | Manage server-side clients |
-| `gtm_setup` | configure | Configure Service Account (optional, via prompt) |
+| `gtm_setup` | configure | Configure Service Account via prompt (fallback) |
 
 ## Authentication
 
@@ -103,105 +138,7 @@ When connecting, you log in with your Google account. The MCP accesses GTM accou
 
 ### Service Account (optional)
 
-For platform-level access (e.g. managing client accounts), add the Service Account JSON as a header in your MCP configuration. This is the **recommended and most secure** method — the SA never appears in chat or gets sent to the LLM.
-
-First, encode your Service Account JSON file to base64:
-
-```bash
-base64 -w 0 /path/to/service-account.json
-```
-
-Copy the output and use it in the configuration below.
-
-#### Claude Desktop
-
-Settings → Developer → Edit Config:
-
-```json
-{
-  "mcpServers": {
-    "wascer-gtm": {
-      "command": "npx",
-      "args": [
-        "-y", "mcp-remote",
-        "https://gtm-mcp.wascer.com/mcp",
-        "--header",
-        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
-      ],
-      "env": {
-        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
-      }
-    }
-  }
-}
-```
-
-#### Cursor
-
-Settings → MCP → Add Server:
-
-```json
-{
-  "mcpServers": {
-    "wascer-gtm": {
-      "command": "npx",
-      "args": [
-        "-y", "mcp-remote",
-        "https://gtm-mcp.wascer.com/mcp",
-        "--header",
-        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
-      ],
-      "env": {
-        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
-      }
-    }
-  }
-}
-```
-
-#### VS Code
-
-Add to your MCP settings (`.vscode/mcp.json` or user settings):
-
-```json
-{
-  "mcpServers": {
-    "wascer-gtm": {
-      "command": "npx",
-      "args": [
-        "-y", "mcp-remote",
-        "https://gtm-mcp.wascer.com/mcp",
-        "--header",
-        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
-      ],
-      "env": {
-        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
-      }
-    }
-  }
-}
-```
-
-#### Claude Code
-
-```bash
-# 1. Encode your Service Account JSON file to base64
-export GTM_SA=$(base64 -w 0 /path/to/service-account.json)
-
-# 2. Add the MCP server with the SA as an environment variable
-claude mcp add wascer-gtm \
-  -e GTM_SERVICE_ACCOUNT_JSON="$GTM_SA" \
-  -- npx mcp-remote https://gtm-mcp.wascer.com/mcp \
-  --header "X-GTM-Service-Account: \${GTM_SERVICE_ACCOUNT_JSON}"
-```
-
-#### How it works
-
-1. The `env` field sets the SA JSON as a local environment variable
-2. `mcp-remote` reads `${GTM_SERVICE_ACCOUNT_JSON}` and injects it into the HTTP header
-3. The server reads the header and configures the SA for the session
-4. The SA **never appears in chat** and is **never sent to the LLM**
-5. All GTM operations use the Service Account instead of your Google OAuth token
+For platform-level access (e.g. managing client accounts), add the Service Account as an environment variable in your MCP configuration (as shown in the connection examples above). The SA is sent via HTTP header — it **never appears in chat** and is **never sent to the LLM**.
 
 #### How to get a Service Account JSON
 
@@ -211,6 +148,13 @@ claude mcp add wascer-gtm \
 4. Base64 encode the JSON: `base64 -w 0 service-account.json`
 5. Use the base64 string in the `GTM_SERVICE_ACCOUNT_JSON` env var
 6. In Google Tag Manager, add the SA email as an admin on the accounts you want to manage
+
+#### How it works
+
+1. The `env` field sets the SA JSON as a local environment variable
+2. `mcp-remote` reads `${GTM_SERVICE_ACCOUNT_JSON}` and injects it into the HTTP header
+3. The server reads the header and configures the SA for the session
+4. All GTM operations use the Service Account instead of your Google OAuth token
 
 ## Troubleshooting
 
