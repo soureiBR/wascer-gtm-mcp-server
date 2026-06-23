@@ -25,9 +25,24 @@ Settings → Developer → Edit Config:
 claude mcp add wascer-gtm -- npx mcp-remote https://gtm-mcp.wascer.com/mcp
 ```
 
-### Cursor / VS Code
+### Cursor
 
-Add to your MCP settings:
+Settings → MCP → Add Server:
+
+```json
+{
+  "mcpServers": {
+    "wascer-gtm": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gtm-mcp.wascer.com/mcp"]
+    }
+  }
+}
+```
+
+### VS Code
+
+Add to `.vscode/mcp.json` or user settings:
 
 ```json
 {
@@ -90,7 +105,17 @@ When connecting, you log in with your Google account. The MCP accesses GTM accou
 
 For platform-level access (e.g. managing client accounts), add the Service Account JSON as a header in your MCP configuration. This is the **recommended and most secure** method — the SA never appears in chat or gets sent to the LLM.
 
-#### Claude Desktop / Cursor / VS Code
+First, encode your Service Account JSON file to base64:
+
+```bash
+base64 -w 0 /path/to/service-account.json
+```
+
+Copy the output and use it in the configuration below.
+
+#### Claude Desktop
+
+Settings → Developer → Edit Config:
 
 ```json
 {
@@ -104,7 +129,53 @@ For platform-level access (e.g. managing client accounts), add the Service Accou
         "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
       ],
       "env": {
-        "GTM_SERVICE_ACCOUNT_JSON": "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIs..."
+        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
+      }
+    }
+  }
+}
+```
+
+#### Cursor
+
+Settings → MCP → Add Server:
+
+```json
+{
+  "mcpServers": {
+    "wascer-gtm": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://gtm-mcp.wascer.com/mcp",
+        "--header",
+        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
+      ],
+      "env": {
+        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
+      }
+    }
+  }
+}
+```
+
+#### VS Code
+
+Add to your MCP settings (`.vscode/mcp.json` or user settings):
+
+```json
+{
+  "mcpServers": {
+    "wascer-gtm": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://gtm-mcp.wascer.com/mcp",
+        "--header",
+        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
+      ],
+      "env": {
+        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
       }
     }
   }
