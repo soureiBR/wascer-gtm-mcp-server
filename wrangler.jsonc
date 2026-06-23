@@ -1,0 +1,46 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "wascer-gtm-mcp-server",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-03-10",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"migrations": [
+		{
+			"new_sqlite_classes": [
+				"WascerGTMMCPServer"
+			],
+			"tag": "v1"
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "WascerGTMMCPServer",
+				"name": "MCP_OBJECT"
+			}
+		]
+	},
+	"kv_namespaces": [
+		{
+			"binding": "OAUTH_KV",
+			"id": "f4abc78bea0e4d97a12156b235306d12"
+		}
+	],
+	"routes": [
+		{
+			"pattern": "gtm-mcp.wascer.com",
+			"custom_domain": true
+		}
+	],
+	"observability": {
+		"enabled": true
+	},
+	"alias": {
+		"ai": "./src/shims/ai.ts"
+	},
+	"dev": {
+		"port": 3333
+	}
+}

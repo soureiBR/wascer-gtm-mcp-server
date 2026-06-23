@@ -1,0 +1,76 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+import { McpAgentToolParamsModel } from "../models/McpAgentModel";
+import { AccountSchema } from "../schemas/AccountSchema";
+import { createErrorResponse, getTagManagerClient, log } from "../utils";
+
+const PayloadSchema = AccountSchema.omit({ accountId: true });
+
+export const accountActions = (
+  server: McpServer,
+  { props }: McpAgentToolParamsModel,
+): void => {
+  server.tool(
+    "gtm_account",
+    "Performs all account-related operations: get, list, update.",
+    {
+      action: z
+        .enum(["get", "list", "update"])
+        .describe("The account operation to perform."),
+      accountId: z.string().describe("The unique ID of the GTM Account."),
+      config: PayloadSchema.optional().describe(
+        "Configuration for 'update' action.",
+      ),
+    },
+    async ({ action, accountId, config }) => {
+      log(`Running tool: gtm_account with action ${action}`);
+
+      try {
+        const tagmanager = await getTagManagerClient(props);
+
+        switch (action) {
+          case "get": {
+            const response = await tagmanager.accounts.get({
+              path: `accounts/${accountId}`,
+            });
+            return {
+              content: [
+                { type: "text", text: JSON.stringify(response.data, null, 2) },
+              ],
+            };
+          }
+          case "list": {
+            const response = await tagmanager.accounts.list({});
+            return {
+              content: [
+                { type: "text", text: JSON.stringify(response.data, null, 2) },
+              ],
+            };
+          }
+          case "update": {
+            if (!config) {
+              throw new Error(`config is required for ${action} action`);
+            }
+
+            const response = await tagmanager.accounts.update({
+              path: `accounts/${accountId}`,
+              requestBody: config,
+            });
+            return {
+              content: [
+                { type: "text", text: JSON.stringify(response.data, null, 2) },
+              ],
+            };
+          }
+          default:
+            throw new Error(`Unknown action: ${action}`);
+        }
+      } catch (error) {
+        return createErrorResponse(
+          `Error performing ${action} on account`,
+          error,
+        );
+      }
+    },
+  );
+};
