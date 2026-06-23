@@ -4,7 +4,9 @@ MCP server that allows AI assistants (Claude, Cursor, etc.) to manage Google Tag
 
 ## How to connect
 
-### Claude Desktop
+### With Service Account (recommended)
+
+#### Claude Desktop
 
 Settings → Developer → Edit Config:
 
@@ -12,40 +14,20 @@ Settings → Developer → Edit Config:
 {
   "mcpServers": {
     "wascer-gtm": {
-      "command": "npx",
+      "command": "bash",
       "args": [
-        "-y",
-        "mcp-remote",
-        "https://gtm-mcp.wascer.com/mcp",
-        "--header",
-        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
+        "-c",
+        "npx -y mcp-remote https://gtm-mcp.wascer.com/mcp --header \"X-GTM-Service-Account: $(base64 -w 0 $GTM_SERVICE_ACCOUNT_FILE)\""
       ],
       "env": {
-        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
+        "GTM_SERVICE_ACCOUNT_FILE": "/path/to/service-account.json"
       }
     }
   }
 }
 ```
 
-> If you don't have a Service Account, remove the `--header` line and the `env` block. The MCP will use your Google OAuth login instead.
-
-### Claude Code
-
-```bash
-# 1. Encode your Service Account JSON file to base64
-export GTM_SA=$(base64 -w 0 /path/to/service-account.json)
-
-# 2. Add the MCP server with the SA as an environment variable
-claude mcp add wascer-gtm \
-  -e GTM_SERVICE_ACCOUNT_JSON="$GTM_SA" \
-  -- npx mcp-remote https://gtm-mcp.wascer.com/mcp \
-  --header "X-GTM-Service-Account: \${GTM_SERVICE_ACCOUNT_JSON}"
-```
-
-> Without Service Account, just run: `claude mcp add wascer-gtm -- npx mcp-remote https://gtm-mcp.wascer.com/mcp`
-
-### Cursor
+#### Cursor
 
 Settings → MCP → Add Server:
 
@@ -53,23 +35,20 @@ Settings → MCP → Add Server:
 {
   "mcpServers": {
     "wascer-gtm": {
-      "command": "npx",
+      "command": "bash",
       "args": [
-        "-y",
-        "mcp-remote",
-        "https://gtm-mcp.wascer.com/mcp",
-        "--header",
-        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
+        "-c",
+        "npx -y mcp-remote https://gtm-mcp.wascer.com/mcp --header \"X-GTM-Service-Account: $(base64 -w 0 $GTM_SERVICE_ACCOUNT_FILE)\""
       ],
       "env": {
-        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
+        "GTM_SERVICE_ACCOUNT_FILE": "/path/to/service-account.json"
       }
     }
   }
 }
 ```
 
-### VS Code
+#### VS Code
 
 Add to `.vscode/mcp.json` or user settings:
 
@@ -77,20 +56,50 @@ Add to `.vscode/mcp.json` or user settings:
 {
   "mcpServers": {
     "wascer-gtm": {
-      "command": "npx",
+      "command": "bash",
       "args": [
-        "-y",
-        "mcp-remote",
-        "https://gtm-mcp.wascer.com/mcp",
-        "--header",
-        "X-GTM-Service-Account: ${GTM_SERVICE_ACCOUNT_JSON}"
+        "-c",
+        "npx -y mcp-remote https://gtm-mcp.wascer.com/mcp --header \"X-GTM-Service-Account: $(base64 -w 0 $GTM_SERVICE_ACCOUNT_FILE)\""
       ],
       "env": {
-        "GTM_SERVICE_ACCOUNT_JSON": "paste-your-base64-here"
+        "GTM_SERVICE_ACCOUNT_FILE": "/path/to/service-account.json"
       }
     }
   }
 }
+```
+
+#### Claude Code
+
+```bash
+claude mcp add wascer-gtm \
+  -e GTM_SERVICE_ACCOUNT_FILE="/path/to/service-account.json" \
+  -- bash -c 'npx -y mcp-remote https://gtm-mcp.wascer.com/mcp --header "X-GTM-Service-Account: $(base64 -w 0 $GTM_SERVICE_ACCOUNT_FILE)"'
+```
+
+> Just replace `/path/to/service-account.json` with the actual path to your Service Account JSON file. The base64 encoding is handled automatically.
+
+### Without Service Account
+
+If you don't have a Service Account, the MCP will use your Google OAuth login instead. You'll have access to GTM accounts that your Google account has permission on.
+
+#### Claude Desktop / Cursor / VS Code
+
+```json
+{
+  "mcpServers": {
+    "wascer-gtm": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://gtm-mcp.wascer.com/mcp"]
+    }
+  }
+}
+```
+
+#### Claude Code
+
+```bash
+claude mcp add wascer-gtm -- npx mcp-remote https://gtm-mcp.wascer.com/mcp
 ```
 
 When connecting, the browser opens for Google login. After authenticating, the tools become available.
@@ -131,7 +140,6 @@ The AI executes all operations automatically via the Google Tag Manager API.
 | `gtm_version`           | get, live, publish, remove, setLatest, undelete, update           | Manage and publish versions                     |
 | `gtm_built_in_variable` | create, list, remove, revert                                      | Enable/disable built-in variables               |
 | `gtm_client`            | create, get, list, update, remove, revert                         | Manage server-side clients                      |
-| `gtm_setup`             | configure                                                         | Configure Service Account via prompt (fallback) |
 
 ## Authentication
 
@@ -141,15 +149,15 @@ When connecting, you log in with your Google account. The MCP accesses GTM accou
 
 ### Service Account (optional)
 
-For platform-level access (e.g. managing client accounts), add the Service Account as an environment variable in your MCP configuration (as shown in the connection examples above). The SA is sent via HTTP header — it **never appears in chat** and is **never sent to the LLM**.
+For platform-level access (e.g. managing client accounts), point to your Service Account JSON file in the MCP configuration (as shown in the connection examples above). The file is read locally, base64 encoded automatically, and sent via HTTP header — it **never appears in chat** and is **never sent to the LLM**.
 
 #### How to get a Service Account JSON
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/) → IAM & Admin → Service Accounts
 2. Create a Service Account (or use an existing one)
 3. Create a JSON key and download it
-4. Base64 encode the JSON: `base64 -w 0 service-account.json`
-5. Use the base64 string in the `GTM_SERVICE_ACCOUNT_JSON` env var
+4. Save the JSON file somewhere on your machine (e.g. `~/keys/service-account.json`)
+5. Use the file path in the `GTM_SERVICE_ACCOUNT_FILE` env var in your MCP config
 6. In Google Tag Manager, add the SA email as an admin on the accounts you want to manage
 
 ## Troubleshooting
